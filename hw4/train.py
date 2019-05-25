@@ -15,6 +15,7 @@ def make_vector(words):
     v = svector()
     for word in words:
         v[word] += 1
+    v['bias'] = 1
     return v
     
 def test(devfile, model):
@@ -27,6 +28,9 @@ def train(trainfile, devfile, epochs=5):
     t = time.time()
     best_err = 1.
     model = svector()
+    avgModel = svector()
+    c=0
+    
     for it in range(1, epochs+1):
         updates = 0
         for i, (label, words) in enumerate(read_from(trainfile), 1): # label is +1 or -1
@@ -34,9 +38,14 @@ def train(trainfile, devfile, epochs=5):
             if label * (model.dot(sent)) <= 0:
                 updates += 1
                 model += label * sent
+                avgModel += c*label*sent
+            c += 1
+            
         dev_err = test(devfile, model)
-        best_err = min(best_err, dev_err)
-        print("epoch %d, update %.1f%%, dev %.1f%%" % (it, updates / i * 100, dev_err * 100))
+        dev_err_avg = test(devfile, c*model - avgModel)
+        
+        best_err = min(best_err, dev_err_avg)
+        print("epoch %d, update %.1f%%, dev %.1f%%" % (it, updates / i * 100, dev_err_avg * 100))
     print("best dev err %.1f%%, |w|=%d, time: %.1f secs" % (best_err * 100, len(model), time.time() - t))
 
 if __name__ == "__main__":
